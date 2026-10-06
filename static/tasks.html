@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>My Tasks · Task Manager</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="app">
+  <div class="card">
+    <div class="header">
+      <div>
+        <h1 id="greeting">My tasks</h1>
+        <p class="subtitle" id="summary">Loading...</p>
+      </div>
+      <button class="ghost" id="logoutBtn">Log out</button>
+    </div>
+
+    <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+
+    <div class="add-row">
+      <input type="text" id="newTask" placeholder="Add a new task..." autofocus>
+      <button class="btn" id="addBtn">Add</button>
+    </div>
+    <p class="error" id="message"></p>
+
+    <ul id="taskList"></ul>
+    <p class="empty" id="emptyMsg" hidden>Nothing here yet. Add your first task above.</p>
+  </div>
+
+  <script>
+    const taskList = document.getElementById("taskList");
+    const emptyMsg = document.getElementById("emptyMsg");
+    const message = document.getElementById("message");
+
+    async function api(url, method = "GET", body = null) {
+      const options = { method, headers: { "Content-Type": "application/json" } };
+      if (body) options.body = JSON.stringify(body);
+      const response = await fetch(url, options);
+      if (response.status === 401) {
+        window.location.href = "/login";
+        return null;
+      }
+      const data = await response.json();
+      return { ok: response.ok, data };
+    }
+
+    async function loadUser() {
+      const res = await api("/api/me");
+      if (res) document.getElementById("greeting").textContent = "Hi, " + res.data.username;
+    }
+
+    function updateSummary(tasks) {
+      const total = tasks.length;
+      const done = tasks.filter((t) => t.done).length;
+      const summary = document.getElementById("summary");
+
+      if (total === 0) summary.textContent = "No tasks yet";
+      else if (done === total) summary.textContent = "All " + total + " tasks done. Nice work!";
+      else summary.textContent = done + " of " + total + " done";
+
+      document.getElementById("progressBar").style.width =
+        total === 0 ? "0%" : Math.round((done / total) * 100) + "%";
+    }
+
+    function renderTasks(tasks) {
+      taskList.innerHTML = "";
+      emptyMsg.hidden = tasks.length > 0;
+      updateSummary(tasks);
+
+      tasks.forEach((task) => {
+        const li = document.createElement("li");
+        if (task.done) li.classList.add("done");
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = task.done;
+        checkbox.addEventListener("change", () => toggleTask(task.id, checkbox.checked));
+
+        const text = document.createElement("span");
+        text.textContent = task.title; // textContent keeps user input safe
+
+        const del = document.createElement("button");
+        del.textContent = "\u2715";
+        del.className = "delete";
+        del.title = "Delete task";
+        del.addEventListener("click", () => deleteTask(task.id));
+
+        li.append(checkbox, text, del);
+        taskList.appendChild(li);
+      });
+    }
+
+    async function loadTasks() {
+      const res = await api("/api/tasks");
+      if (res) renderTasks(res.data);
+    }
+
+    async function addTask() {
+      const input = document.getElementById("newTask");
+      const res = await api("/api/tasks", "POST", { title: input.value });
+      if (!res) return;
+      if (res.ok) {
+        input.value = "";
+        message.textContent = "";
+        loadTasks();
+      } else {
+        message.textContent = res.data.error;
+      }
+    }
+
+    async function toggleTask(id, done) {
+      await api("/api/tasks/" + id, "PATCH", { done });
+      loadTasks();
+    }
+
+    async function deleteTask(id) {
+      await api("/api/tasks/" + id, "DELETE");
+      loadTasks();
+    }
+
+    document.getElementById("addBtn").addEventListener("click", addTask);
+    document.getElementById("newTask").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") addTask();
+    });
+    document.getElementById("logoutBtn").addEventListener("click", async () => {
+      await api("/api/logout", "POST");
+      window.location.href = "/login";
+    });
+
+    loadUser();
+    loadTasks();
+  </script>
+</body>
+</html>

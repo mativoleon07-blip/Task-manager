@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign up · Task Manager</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="auth">
+  <div class="card">
+    <div class="brand"><span class="brand-icon">&#10003;</span> Task Manager</div>
+    <h1>Create your account</h1>
+    <p class="subtitle">It takes a few seconds.</p>
+
+    <label for="username">Username</label>
+    <input type="text" id="username" autocomplete="username" autofocus>
+
+    <label for="password">Password</label>
+    <input type="password" id="password" autocomplete="new-password" placeholder="At least 6 characters">
+
+    <p class="error" id="message"></p>
+    <button class="btn full" id="registerBtn">Create account</button>
+
+    <p class="switch">Already registered? <a href="/login">Log in</a></p>
+  </div>
+
+  <script>
+    async function register() {
+      const username = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
+
+      const response = await fetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+      const result = await response.json();
+
+      if (response.ok) {
+        window.location.href = "/login";
+      } else {
+        document.getElementById("message").textContent = result.error;
+      }
+    }
+
+    document.getElementById("registerBtn").addEventListener("click", register);
+    document.getElementById("password").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") register();
+    });
+  </script>
+</body>
+</html>

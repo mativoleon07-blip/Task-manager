@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Log in · Task Manager</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="auth">
+  <div class="card">
+    <div class="brand"><span class="brand-icon">&#10003;</span> Task Manager</div>
+    <h1>Welcome back</h1>
+    <p class="subtitle">Log in to see your tasks.</p>
+
+    <label for="username">Username</label>
+    <input type="text" id="username" autocomplete="username" autofocus>
+
+    <label for="password">Password</label>
+    <input type="password" id="password" autocomplete="current-password">
+
+    <p class="error" id="message"></p>
+    <button class="btn full" id="loginBtn">Log in</button>
+
+    <p class="switch">No account yet? <a href="/register">Create one</a></p>
+  </div>
+
+  <script>
+    async function login() {
+      const username = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
+
+      const response = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+      const result = await response.json();
+
+      if (response.ok) {
+        window.location.href = "/tasks";
+      } else {
+        document.getElementById("message").textContent = result.error;
+      }
+    }
+
+    document.getElementById("loginBtn").addEventListener("click", login);
+    document.getElementById("password").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") login();
+    });
+  </script>
+</body>
+</html>
